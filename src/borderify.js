@@ -43,11 +43,15 @@ var HTML =
 <p>Average Messages Per Minute: $mgs_pm</p>
 <h2>Top 3 Used languages:</h2>
 <ul>
-    <li>1. $l_0</li>
-    <li>2. $l_1</li>
-    <li>3. $l_2</li>
+    <li>1. $l_0 ($p_0%)</li>
+    <li>2. $l_1 ($p_1%)</li>
+    <li>3. $l_2 ($p_2%)</li>
 </ul> 
+<p>ID: $id</p>
 `
+
+var STREAMS = undefined;
+var LAST_ID = "";
 
 function getStreamsInDatabase(){
     return new Promise((resolve, reject) => {
@@ -81,22 +85,29 @@ function getCurrentID(){
 
 function isLivestream(){    
     return new Promise((resolve, reject) => {
-        getStreamsInDatabase().then(r => {
-            let id = getCurrentID()
-            resolve(r.includes(id))
-        })
+        if(STREAMS === undefined){
+            getStreamsInDatabase().then(r => {
+                let id = LAST_ID
+                STREAMS = r;
+                resolve(r.includes(id))                
+            })
+        }else{
+            resolve(STREAMS.includes(LAST_ID))
+        }
     })
 }
 
 function getStreamDetails(){
     return new Promise((resolve, reject) => {
-        fetch(detail_url.replace("?", getCurrentID()))
+        fetch(detail_url.replace("?", LAST_ID))
         .then(response => response.json())
         .then(data => {
+            console.log("REEEEEEEEE");
             var details = {
                 mgs_total: 0,
                 avg_mgs_pm: Math.round(data.avg_mgs_per_min),
-                lang: []
+                lang: [],
+                lang_p: []
             }
 
             let total_identified = 0;
@@ -120,6 +131,11 @@ function getStreamDetails(){
 
             lang_map = new Map([...lang_map.entries()].sort((a, b) => b[1] - a[1]))
             details.lang = Array.from(lang_map.keys())
+            details.lang_p = Array.from(lang_map.values())
+
+            details.lang_p[0] = (details.lang_p[0]/total_identified*100).toPrecision(2)
+            details.lang_p[1] = (details.lang_p[1]/total_identified*100).toPrecision(2)
+            details.lang_p[2] = (details.lang_p[2]/total_identified*100).toPrecision(2)
 
             resolve(details)
         });
@@ -131,22 +147,46 @@ function insertStyle(){
     head.append(htmlToElement("<style>?</style>".replace("?", STYLE)))
 }
 
-isLivestream().then((r) => {
-    console.log(r);
-    if(r) {        
-        getStreamDetails().then((details) => {
-            insertStyle();
 
-            let secondary = document.getElementById("secondary-inner");
-            let ln = new Intl.DisplayNames(['en'], {type: 'language'});
-
-            HTML = HTML.replace("$mgs_pm", details.avg_mgs_pm)
-            HTML = HTML.replace("$mgs_total", details.mgs_total)
-            HTML = HTML.replace("$l_0", ln.of(details.lang[0]))
-            HTML = HTML.replace("$l_1", ln.of(details.lang[1]))
-            HTML = HTML.replace("$l_2", ln.of(details.lang[2]))
-
-            secondary.insertBefore(htmlToElement("<div class=\"eps\">?</div>".replace("?", HTML)), secondary.firstChild);
-        })        
+function remove(){
+    let ele = document.getElementsByClassName("eps")
+    if(ele.length != 0){
+        ele[0].remove()
     }
-})
+}
+
+function refresh(){
+    if(getCurrentID() != LAST_ID || document.getElementsByClassName("eps").length === 0){        
+        LAST_ID = getCurrentID()
+        console.log(LAST_ID);
+        isLivestream().then((r) => {                
+            if(r) {                        
+                console.log("RERENDERING");                
+                getStreamDetails().then((details) => { 
+                    remove()
+                    let secondary = document.getElementById("secondary-inner");
+                    let ln = new Intl.DisplayNames(['en'], {type: 'language'});
+                    
+                    let _HTML = HTML;
+                    _HTML = _HTML.replace("$mgs_pm", details.avg_mgs_pm)
+                    _HTML = _HTML.replace("$mgs_total", details.mgs_total)
+                    _HTML = _HTML.replace("$l_0", ln.of(details.lang[0]))
+                    _HTML = _HTML.replace("$l_1", ln.of(details.lang[1]))
+                    _HTML = _HTML.replace("$l_2", ln.of(details.lang[2]))
+                    _HTML = _HTML.replace("$p_0", details.lang_p[0])
+                    _HTML = _HTML.replace("$p_1", details.lang_p[1])
+                    _HTML = _HTML.replace("$p_2", details.lang_p[2])
+                    _HTML = _HTML.replace("$id", LAST_ID)
+
+                    secondary.insertBefore(htmlToElement("<div class=\"eps\">?</div>".replace("?", _HTML)), secondary.firstChild);
+                })        
+            }else remove()
+
+        })
+        
+    }    
+}
+
+insertStyle();
+refresh()
+setInterval(refresh, 500)
