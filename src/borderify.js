@@ -6,18 +6,19 @@ const HIGHLIGHTIN_COLOR = "#FF0000"
 
 const STYLE = 
 `
-@import url("https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700,800,900&display=swap");
+@import url("https://fonts.googleapis.com/css?family=Roboto:300,400,500,600,700,800,900&display=swap");
 
 .eps{
-    background: #aca7cb;   
+    background: #181818;   
     
     padding:3%; 
     margin-bottom: 3%;     
-    border-radius:5px;
 
-    font-family: 'Poppins';
+    border-radius:1px;
+
+    font-family: 'Roboto';
     font-size: 1.5em;
-    color: #000;    
+    color: #ffffff;    
 }
 
 .eps h1{
@@ -41,7 +42,7 @@ const STYLE =
 
 const YT_BAR_STYLE = 
 `
-.ytp-progress-bar{
+.ytp-progress-list{
     background: rgb(2,0,36);
     background: linear-gradient(to left, 
         ?
@@ -86,6 +87,12 @@ function htmlToElement(html) {
     html = html.trim();
     template.innerHTML = html;
     return template.content.firstChild;
+}
+
+function getCurrentDuration(){
+    let ele = document.getElementsByClassName('ytp-time-duration')[0]
+    let _content = ele.innerHTML.split(":")
+    return (parseInt(_content[0]) * 60 * 60 + parseInt(_content[1]) * 60 + parseInt(_content[2])) * 1000
 }
 
 function getCurrentID(){
@@ -138,7 +145,8 @@ function getStreamDetails(){
             let lang_map = new Map();
 
             let first_msg = Date.parse(data.msg_times[0].time)
-            let length = -(first_msg - Date.parse(data.msg_times[data.msg_times.length- 1].time));
+            let length = getCurrentDuration()
+
             let last = [0,0,0,0,0,0,0,0,0,0]
 
             data.msg_times.forEach((i) => {
@@ -175,16 +183,22 @@ function getStreamDetails(){
             let interpoled = []
             let _last = 0
 
+            console.log(details.highlights);
+
             details.highlights.forEach((x) => {
-                console.log();
+                console.log(1);
+                var date = new Date(0);
+                date.setSeconds(x / 1000); // specify value for SECONDS here
+                var timeString = date.toISOString().substr(11, 8);
+                console.log(timeString)
+                date = new Date(0)
+                date.setSeconds(length / 1000); // specify value for SECONDS here
+                timeString = date.toISOString().substr(11, 8);
+                console.log(timeString)
+
                 if((x - 1000 * 60) > _last){
                     interpoled.push([(x - 1000 * 30)/length, (x + 1000 * 30)/length])
                     _last = x;
-
-                    var date = new Date(0);
-                    date.setSeconds(x / 1000); // specify value for SECONDS here
-                    var timeString = date.toISOString().substr(11, 8);
-                    console.log(timeString)
                 }
             })
             details.highlights = interpoled;
