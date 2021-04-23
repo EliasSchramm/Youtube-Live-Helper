@@ -44,7 +44,7 @@ const YT_BAR_STYLE =
 `
 .ytp-progress-list{
     background: rgb(2,0,36);
-    background: linear-gradient(to left, 
+    background: linear-gradient(to right, 
         ?
     );
 }
@@ -144,9 +144,9 @@ function getStreamDetails(){
             let total_identified = 0;
             let lang_map = new Map();
 
-            let first_msg = Date.parse(data.msg_times[0].time)
-            let length = getCurrentDuration()
 
+            let first_msg = data.date
+            let length = getCurrentDuration()
             let last = [0,0,0,0,0,0,0,0,0,0]
 
             data.msg_times.forEach((i) => {
@@ -182,25 +182,18 @@ function getStreamDetails(){
 
             let interpoled = []
             let _last = 0
-
-            console.log(details.highlights);
+            
+            let t = []
 
             details.highlights.forEach((x) => {
-                console.log(1);
-                var date = new Date(0);
-                date.setSeconds(x / 1000); // specify value for SECONDS here
-                var timeString = date.toISOString().substr(11, 8);
-                console.log(timeString)
-                date = new Date(0)
-                date.setSeconds(length / 1000); // specify value for SECONDS here
-                timeString = date.toISOString().substr(11, 8);
-                console.log(timeString)
-
                 if((x - 1000 * 60) > _last){
                     interpoled.push([(x - 1000 * 30)/length, (x + 1000 * 30)/length])
                     _last = x;
+                    t.push([(x - 1000 * 30), (x + 1000 * 30)])
                 }
             })
+            console.log(t)
+            console.log(interpoled);
             details.highlights = interpoled;
 
             resolve(details)
@@ -214,9 +207,9 @@ function insertStyle(){
 }
 
 function insertYT_BAR_STYLE(points){
-    console.log(points);
     let gradient_config = ""
     let last_endpoint = 0;
+
     points.forEach(point => {
         let startpoint = Math.max(0 , point[0]) * 100
         let endpoint = Math.min(0.9999999999 , point[1]) * 100
@@ -225,7 +218,7 @@ function insertYT_BAR_STYLE(points){
         gradient_config += HIGHLIGHTIN_COLOR + " " + startpoint + "%" + " " + endpoint + "%, \n"
         
         last_endpoint = endpoint;
-    })
+    })   
 
     gradient_config += YT_BAR_COLOR + " " + last_endpoint + "%" + " 100%"
     let head = document.getElementsByTagName("head")[0]
