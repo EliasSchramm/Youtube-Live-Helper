@@ -43,7 +43,6 @@ const STYLE =
 const YT_BAR_STYLE = 
 `
 .ytp-progress-list{
-    background: rgb(2,0,36);
     background: linear-gradient(to right, 
         ?
     );
@@ -89,12 +88,6 @@ function htmlToElement(html) {
     return template.content.firstChild;
 }
 
-function getCurrentDuration(){
-    let ele = document.getElementsByClassName('ytp-time-duration')[0]
-    let _content = ele.innerHTML.split(":")
-    return (parseInt(_content[0]) * 60 * 60 + parseInt(_content[1]) * 60 + parseInt(_content[2])) * 1000
-}
-
 function getCurrentID(){
     let url = window.location.href
     url = url.split("watch?v=")[1]
@@ -117,86 +110,13 @@ function isLivestream(){
     })
 }
 
-function array_avg(array){
-    i = 0;
-
-    array.forEach(x => {
-        i += x
-    })
-
-    return i / array.length
-}
 
 function getStreamDetails(){
     return new Promise((resolve, reject) => {
         fetch(detail_url.replace("?", LAST_ID))
         .then(response => response.json())
         .then(data => {
-
-            var details = {
-                mgs_total: 0,
-                avg_mgs_pm: Math.round(data.avg_mgs_per_min),
-                lang: [],
-                lang_p: [],
-                highlights: []
-            }
-
-            let total_identified = 0;
-            let lang_map = new Map();
-
-
-            let first_msg = data.date
-            let length = getCurrentDuration()
-            let last = [0,0,0,0,0,0,0,0,0,0]
-
-            data.msg_times.forEach((i) => {
-                details.mgs_total += i.count;
-                
-                let map = new Map(Object.entries(i.langs));
-                
-                map.forEach((v, k) => {                             
-                        if(lang_map.has(k)){
-                            lang_map.set(k, lang_map.get(k) + v)
-                        }else{
-                            lang_map.set(k, v)
-                        }
-
-                        total_identified += v;
-
-                        if(i.count > array_avg(last) * 5){
-                            details.highlights.push((Date.parse(i.time) - first_msg))
-                        }
-
-                        last.push(i.count)
-                        last.shift()                        
-                })                 
-            })             
-
-            lang_map = new Map([...lang_map.entries()].sort((a, b) => b[1] - a[1]))
-            details.lang = Array.from(lang_map.keys())
-            details.lang_p = Array.from(lang_map.values())
-
-            details.lang_p[0] = (details.lang_p[0]/total_identified*100).toPrecision(2)
-            details.lang_p[1] = (details.lang_p[1]/total_identified*100).toPrecision(2)
-            details.lang_p[2] = (details.lang_p[2]/total_identified*100).toPrecision(2)
-
-            let interpoled = []
-            let _last = 0
-            
-            let t = []
-
-            details.highlights.forEach((x) => {
-                if((x - 1000 * 60) > _last){
-                    interpoled.push([(x - 1000 * 30)/length, (x + 1000 * 30)/length])
-                    _last = x;
-                    t.push([(x - 1000 * 30), (x + 1000 * 30)])
-                }
-            })
-            console.log(t)
-            console.log(interpoled);
-            details.highlights = interpoled;
-
-            resolve(details)
+            resolve(data)
         });
     })
 }
@@ -221,15 +141,18 @@ function insertYT_BAR_STYLE(points){
     })   
 
     gradient_config += YT_BAR_COLOR + " " + last_endpoint + "%" + " 100%"
-    let head = document.getElementsByTagName("head")[0]
-    head.append(htmlToElement("<style>?</style>".replace("?", YT_BAR_STYLE.replace("?", gradient_config))))
+    let body = document.getElementsByTagName("body")[0]
+    body.append(htmlToElement("<style class=\"eps\">?</style>".replace("?", YT_BAR_STYLE.replace("?", gradient_config))))
 }
 
 
 function remove(){
     let ele = document.getElementsByClassName("eps")
+    console.log(ele);
     if(ele.length != 0){
-        ele[0].remove()
+        for (var i = ele.length - 1; i >= 0; --i) {
+            ele[i].remove();
+          }        
     }
 }
 
@@ -244,7 +167,7 @@ function refresh(){
                     let secondary = document.getElementById("secondary-inner");
                     let ln = new Intl.DisplayNames(['en'], {type: 'language'});
 
-                    insertYT_BAR_STYLE(details.highlights)
+                    insertYT_BAR_STYLE(details.highlights[4])
 
                     let _HTML = HTML;
                     _HTML = _HTML.replace("$mgs_pm", details.avg_mgs_pm)
