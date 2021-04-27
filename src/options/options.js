@@ -8,7 +8,7 @@ function saveOptions(e) {
 function restoreOptions() {
 
   function setCurrentChoice(result) {
-    document.querySelector("#servers").innerHTML = result.servers || "api.eps-dev.de:42070;";
+    document.querySelector("#servers").innerHTML = result.servers || "holoapi.eps-dev.de:42070;";
   }
 
   function onError(error) {

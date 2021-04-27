@@ -89,7 +89,7 @@ var CURRENT_HIGHLIGHTS = []
 
 async function getServers() {
     function get(result) {
-        var ret = result.servers || "api.eps-dev.de:42070;"
+        var ret = result.servers || "holoapi.eps-dev.de:42070;"
         SERVERS = ret.split(";")
     }
 
