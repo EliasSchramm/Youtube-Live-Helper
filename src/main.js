@@ -38,6 +38,23 @@ const STYLE =
     padding: 0;
     margin: 0;
 }
+
+.eps p#threshold{
+    text-align: center;
+    font-size: 1.3em;
+}
+
+.eps p#threshold span{
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+     -khtml-user-select: none; 
+       -moz-user-select: none; 
+        -ms-user-select: none; 
+            user-select: none;             
+}
+.clickable{
+    cursor: pointer;
+}
 `;
 
 const YT_BAR_STYLE =
@@ -60,11 +77,15 @@ var HTML =
     <li>2. $l_1 ($p_1%)</li>
     <li>3. $l_2 ($p_2%)</li>
 </ul> 
+<h2>Threshold</h2>
+<p id=\"threshold\"> <span class=\"clickable\" id=\"th_minus\"><-</span> <span id=\"th\">$threshold</span> <span class=\"clickable\" id=\"th_plus\">-></span> </p>
 <p>ID: $id</p>
 `
 var SERVERS = []
 var STREAMS = undefined;
 var LAST_ID = "";
+var CURRENT_THRESHHOLD = 5;
+var CURRENT_HIGHLIGHTS = []
 
 async function getServers() {
     function get(result) {
@@ -170,17 +191,26 @@ function insertYT_BAR_STYLE(points) {
 
     gradient_config += YT_BAR_COLOR + " " + last_endpoint + "%" + " 100%"
     let body = document.getElementsByTagName("body")[0]
-    body.append(htmlToElement("<style class=\"eps\">?</style>".replace("?", YT_BAR_STYLE.replace("?", gradient_config))))
+    body.append(htmlToElement("<style class=\"epsYT\">?</style>".replace("?", YT_BAR_STYLE.replace("?", gradient_config))))
 }
 
-function remove() {
-    let ele = document.getElementsByClassName("eps")
-
+function remove(ele){
     if (ele.length != 0) {
         for (var i = ele.length - 1; i >= 0; --i) {
             ele[i].remove();
         }
     }
+}
+
+function removeSideElement() {
+    let ele = document.getElementsByClassName("eps")
+    remove(ele)
+    removeProgressStyle()
+}
+
+function removeProgressStyle(){
+    let ele = document.getElementsByClassName("epsYT")
+    remove(ele)
 }
 
 function refresh() {
@@ -190,11 +220,12 @@ function refresh() {
         isLivestream().then((r) => {
             if (r) {
                 getStreamDetails().then((details) => {
-                    remove()
+                    removeSideElement()
                     let secondary = document.getElementById("secondary-inner");
                     let ln = new Intl.DisplayNames(['en'], { type: 'language' });
 
-                    insertYT_BAR_STYLE(details.highlights[4])
+                    insertYT_BAR_STYLE(details.highlights[CURRENT_THRESHHOLD-1])
+                    CURRENT_HIGHLIGHTS = details.highlights;
 
                     let _HTML = HTML;
                     _HTML = _HTML.replace("$mgs_pm", details.avg_mgs_pm)
@@ -205,15 +236,28 @@ function refresh() {
                     _HTML = _HTML.replace("$p_0", details.lang_p[0])
                     _HTML = _HTML.replace("$p_1", details.lang_p[1])
                     _HTML = _HTML.replace("$p_2", details.lang_p[2])
+                    _HTML = _HTML.replace("$threshold", CURRENT_THRESHHOLD)
                     _HTML = _HTML.replace("$id", LAST_ID)
 
                     secondary.insertBefore(htmlToElement("<div class=\"eps\">?</div>".replace("?", _HTML)), secondary.firstChild);
+                    document.getElementById("th_minus").onclick = function() {changeThreshold(-1)};
+                    document.getElementById("th_plus").onclick = function() {changeThreshold(1)};
+
                 })
-            } else remove()
-
+            } else removeSideElement()
         })
-
     }
+}
+
+function changeThreshold(e){
+    CURRENT_THRESHHOLD += e;
+    CURRENT_THRESHHOLD = Math.max(1, CURRENT_THRESHHOLD)
+    CURRENT_THRESHHOLD = Math.min(5, CURRENT_THRESHHOLD)
+
+    document.getElementById("th").innerHTML = CURRENT_THRESHHOLD;
+
+    removeProgressStyle();
+    insertYT_BAR_STYLE(CURRENT_HIGHLIGHTS[CURRENT_THRESHHOLD-1])
 }
 
 insertStyle();
